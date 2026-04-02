@@ -14,6 +14,7 @@ import (
 	"github.com/j4ger/picowatcher/logger"
 	"github.com/j4ger/picowatcher/notify"
 	"github.com/j4ger/picowatcher/state"
+	"github.com/j4ger/picowatcher/watcher"
 )
 
 func main() {
@@ -34,6 +35,14 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Initialize config watcher
+	configWatcher, err := watcher.New(*configPath, log)
+	if err != nil {
+		log.Error("failed to initialize config watcher", "error", err)
+		os.Exit(1)
+	}
+	defer configWatcher.Close()
+
 	log.Info("picowatcher started",
 		"interval_seconds", cfg.IntervalSeconds,
 		"feeds", len(cfg.Feeds),
@@ -52,6 +61,49 @@ func main() {
 		select {
 		case <-ticker.C:
 			run(cfg, st, log)
+		case <-configWatcher.ReloadChan():
+			log.Info("reloading configuration")
+
+			// Save current state before reloading
+			if err := st.Save(); err != nil {
+				log.Error("saving state before reload", "error", err)
+			}
+
+			// Load new config
+			newCfg, err := config.Load(*configPath)
+			if err != nil {
+				log.Error("failed to reload config, keeping old config", "error", err)
+				continue
+			}
+
+			// Reinitialize logger if log config changed
+			log = logger.Setup(newCfg.Log)
+
+			// Reload state if path changed
+			if newCfg.State.Path != cfg.State.Path {
+				newSt, err := state.Load(newCfg.State.Path)
+				if err != nil {
+					log.Error("failed to load new state file, keeping old state", "error", err)
+				} else {
+					st = newSt
+				}
+			}
+
+			// Update config reference
+			cfg = newCfg
+
+			// Reset ticker if interval changed
+			ticker.Stop()
+			ticker = time.NewTicker(time.Duration(cfg.IntervalSeconds) * time.Second)
+
+			log.Info("configuration reloaded successfully",
+				"interval_seconds", cfg.IntervalSeconds,
+				"feeds", len(cfg.Feeds),
+			)
+
+			// Run immediately with new config
+			run(cfg, st, log)
+
 		case sig := <-sigs:
 			log.Info("shutting down", "signal", sig)
 			if err := st.Save(); err != nil {
