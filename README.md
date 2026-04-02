@@ -15,6 +15,25 @@ A production-quality Go daemon that monitors RSS/Atom feeds, summarizes new item
 
 - Go 1.22+
 
+### Nix Development Shell
+
+If you use [Nix](https://nixos.org/), you can quickly set up a complete development environment:
+
+```bash
+# Enter the development shell
+nix develop
+
+# Or use direnv for automatic activation
+echo "use flake" > .envrc
+direnv allow
+```
+
+The flake provides:
+- Go toolchain
+- gopls (language server)
+- delve (debugger)
+- Additional Go development tools
+
 ## Installation
 
 ```bash
