@@ -1,0 +1,49 @@
+# How often to check feeds (in seconds)
+interval_seconds: 3600
+
+# RSS/Atom feeds to monitor
+feeds:
+  - name: "Hacker News"
+    url: "https://news.ycombinator.com/rss"
+  - name: "Go Blog"
+    url: "https://go.dev/blog/feed.atom"
+
+# LLM configuration (OpenAI-compatible)
+llm:
+  enabled: true
+  base_url: "https://api.openai.com/v1"
+  api_key: "sk-your-api-key-here"
+  model: "gpt-4o-mini"
+  timeout_seconds: 30
+  system_prompt: "You are a concise summarizer. Summarize the provided article in 2-3 sentences."
+  user_prompt_template: "Title: {{.Title}}\n\nContent: {{.Content}}"
+
+# Webhook configuration
+webhook:
+  url: "https://hooks.example.com/notify"
+  method: "POST"
+  timeout_seconds: 10
+  headers:
+    Authorization: "Bearer your-token"
+    X-Custom-Header: "value"
+  # Template variables: .FeedName .FeedURL .Title .Link .Description .Content .Summary .Published
+  payload_template: |
+    {
+      "feed": "{{.FeedName}}",
+      "title": "{{.Title}}",
+      "link": "{{.Link}}",
+      "summary": "{{.Summary}}",
+      "published": "{{.Published}}"
+    }
+
+# State persistence
+state:
+  path: "state.json"
+
+# Logging
+log:
+  path: "picowatcher.log"
+  max_size_mb: 100
+  max_backups: 3
+  max_age_days: 30
+  compress: true
