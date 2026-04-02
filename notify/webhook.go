@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"sync"
 	"text/template"
 	"time"
 
@@ -22,6 +23,15 @@ type TemplateData struct {
 	Summary     string
 	Published   time.Time
 }
+
+// httpClient is shared across all Send calls to enable connection pooling.
+var httpClient = &http.Client{}
+
+// templateCache stores parsed payload templates keyed by their source string.
+var (
+	tmplMu    sync.Mutex
+	tmplCache = make(map[string]*template.Template)
+)
 
 func Send(cfg config.WebhookConfig, item feed.Item, summary string) error {
 	data := TemplateData{
@@ -52,7 +62,7 @@ func Send(cfg config.WebhookConfig, item feed.Item, summary string) error {
 		req.Header.Set(k, v)
 	}
 
-	client := &http.Client{}
+	client := httpClient
 	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("sending webhook: %w", err)
@@ -66,10 +76,18 @@ func Send(cfg config.WebhookConfig, item feed.Item, summary string) error {
 }
 
 func renderTemplate(tmpl string, data TemplateData) (string, error) {
-	t, err := template.New("webhook").Parse(tmpl)
-	if err != nil {
-		return "", err
+	tmplMu.Lock()
+	t, ok := tmplCache[tmpl]
+	if !ok {
+		var err error
+		t, err = template.New("webhook").Parse(tmpl)
+		if err != nil {
+			tmplMu.Unlock()
+			return "", err
+		}
+		tmplCache[tmpl] = t
 	}
+	tmplMu.Unlock()
 	var buf bytes.Buffer
 	if err := t.Execute(&buf, data); err != nil {
 		return "", err

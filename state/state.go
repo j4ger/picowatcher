@@ -14,6 +14,9 @@ type State struct {
 	Seen map[string]map[string]bool `json:"seen"`
 }
 
+// Load reads persisted state from path. The returned *State is not safe for
+// concurrent use until Load returns; callers must not share it across goroutines
+// before that point.
 func Load(path string) (*State, error) {
 	s := &State{
 		path: path,

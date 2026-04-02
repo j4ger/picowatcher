@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"text/template"
 	"time"
 
@@ -31,6 +32,15 @@ type chatResponse struct {
 		Message string `json:"message"`
 	} `json:"error,omitempty"`
 }
+
+// httpClient is shared across all Summarize calls to enable connection pooling.
+var httpClient = &http.Client{}
+
+// templateCache stores parsed prompt templates keyed by their source string.
+var (
+	tmplMu    sync.Mutex
+	tmplCache = make(map[string]*template.Template)
+)
 
 func Summarize(cfg config.LLMConfig, item feed.Item) (string, error) {
 	if !cfg.Enabled {
@@ -66,8 +76,7 @@ func Summarize(cfg config.LLMConfig, item feed.Item) (string, error) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+cfg.APIKey)
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("calling LLM API: %w", err)
 	}
@@ -87,10 +96,18 @@ func Summarize(cfg config.LLMConfig, item feed.Item) (string, error) {
 }
 
 func renderTemplate(tmpl string, item feed.Item) (string, error) {
-	t, err := template.New("prompt").Parse(tmpl)
-	if err != nil {
-		return "", err
+	tmplMu.Lock()
+	t, ok := tmplCache[tmpl]
+	if !ok {
+		var err error
+		t, err = template.New("prompt").Parse(tmpl)
+		if err != nil {
+			tmplMu.Unlock()
+			return "", err
+		}
+		tmplCache[tmpl] = t
 	}
+	tmplMu.Unlock()
 	var buf bytes.Buffer
 	if err := t.Execute(&buf, item); err != nil {
 		return "", err
