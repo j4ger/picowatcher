@@ -8,7 +8,7 @@ A production-quality Go daemon that monitors RSS/Atom feeds, summarizes new item
 - **Change detection** – Persists per-feed seen-item state (by GUID → link → title) to a JSON file so only genuinely new items trigger notifications
 - **LLM summarization** – Calls any OpenAI-compatible API (OpenAI, Azure OpenAI, Ollama, etc.) to produce a short summary for each new item
 - **Webhook delivery** – Renders a configurable Go `text/template` payload and POSTs it to any HTTP endpoint
-- **Rolling log files** – Uses [lumberjack](https://github.com/natefinish/lumberjack) for size- and age-based log rotation, with simultaneous output to stdout
+- **Rolling log files** – Uses [lumberjack](https://github.com/natefinch/lumberjack) for size- and age-based log rotation, with simultaneous output to stdout
 - **Graceful shutdown** – Handles `SIGINT`/`SIGTERM`, saves state before exiting
 
 ## Requirements
