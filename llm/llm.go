@@ -38,7 +38,7 @@ var httpClient = &http.Client{}
 
 // templateCache stores parsed prompt templates keyed by their source string.
 var (
-	tmplMu    sync.Mutex
+	tmplMu    sync.RWMutex
 	tmplCache = make(map[string]*template.Template)
 )
 
@@ -82,6 +82,10 @@ func Summarize(cfg config.LLMConfig, item feed.Item) (string, error) {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", fmt.Errorf("LLM API returned non-2xx status: %d", resp.StatusCode)
+	}
+
 	var chatResp chatResponse
 	if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
 		return "", fmt.Errorf("decoding LLM response: %w", err)
@@ -96,18 +100,24 @@ func Summarize(cfg config.LLMConfig, item feed.Item) (string, error) {
 }
 
 func renderTemplate(tmpl string, item feed.Item) (string, error) {
-	tmplMu.Lock()
+	tmplMu.RLock()
 	t, ok := tmplCache[tmpl]
+	tmplMu.RUnlock()
 	if !ok {
-		var err error
-		t, err = template.New("prompt").Parse(tmpl)
-		if err != nil {
-			tmplMu.Unlock()
-			return "", err
+		tmplMu.Lock()
+		// Re-check under write lock to avoid double-parse.
+		t, ok = tmplCache[tmpl]
+		if !ok {
+			var err error
+			t, err = template.New("prompt").Parse(tmpl)
+			if err != nil {
+				tmplMu.Unlock()
+				return "", err
+			}
+			tmplCache[tmpl] = t
 		}
-		tmplCache[tmpl] = t
+		tmplMu.Unlock()
 	}
-	tmplMu.Unlock()
 	var buf bytes.Buffer
 	if err := t.Execute(&buf, item); err != nil {
 		return "", err

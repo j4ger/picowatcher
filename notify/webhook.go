@@ -29,7 +29,7 @@ var httpClient = &http.Client{}
 
 // templateCache stores parsed payload templates keyed by their source string.
 var (
-	tmplMu    sync.Mutex
+	tmplMu    sync.RWMutex
 	tmplCache = make(map[string]*template.Template)
 )
 
@@ -76,18 +76,24 @@ func Send(cfg config.WebhookConfig, item feed.Item, summary string) error {
 }
 
 func renderTemplate(tmpl string, data TemplateData) (string, error) {
-	tmplMu.Lock()
+	tmplMu.RLock()
 	t, ok := tmplCache[tmpl]
+	tmplMu.RUnlock()
 	if !ok {
-		var err error
-		t, err = template.New("webhook").Parse(tmpl)
-		if err != nil {
-			tmplMu.Unlock()
-			return "", err
+		tmplMu.Lock()
+		// Re-check under write lock to avoid double-parse.
+		t, ok = tmplCache[tmpl]
+		if !ok {
+			var err error
+			t, err = template.New("webhook").Parse(tmpl)
+			if err != nil {
+				tmplMu.Unlock()
+				return "", err
+			}
+			tmplCache[tmpl] = t
 		}
-		tmplCache[tmpl] = t
+		tmplMu.Unlock()
 	}
-	tmplMu.Unlock()
 	var buf bytes.Buffer
 	if err := t.Execute(&buf, data); err != nil {
 		return "", err
