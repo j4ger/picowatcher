@@ -36,6 +36,13 @@ webhook:
       "published": "{{.Published}}"
     }
 
+# Dry-run options for safe config testing
+dry_run:
+  fetch_only: false        # only fetch and list new items; skip summaries, webhooks, and state writes
+  skip_llm: false          # render and log the LLM prompt instead of calling the API
+  skip_webhook: false      # render and log the webhook payload instead of sending it
+  skip_state_save: false   # don't write state.json after a run
+
 # State persistence
 state:
   path: "state.json"

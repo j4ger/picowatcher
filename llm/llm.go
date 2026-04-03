@@ -42,12 +42,16 @@ var (
 	tmplCache = make(map[string]*template.Template)
 )
 
+func RenderPrompt(cfg config.LLMConfig, item feed.Item) (string, error) {
+	return renderTemplate(cfg.UserPromptTmpl, item)
+}
+
 func Summarize(cfg config.LLMConfig, item feed.Item) (string, error) {
 	if !cfg.Enabled {
 		return "", nil
 	}
 
-	userPrompt, err := renderTemplate(cfg.UserPromptTmpl, item)
+	userPrompt, err := RenderPrompt(cfg, item)
 	if err != nil {
 		return "", fmt.Errorf("rendering user prompt template: %w", err)
 	}

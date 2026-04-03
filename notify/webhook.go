@@ -34,6 +34,15 @@ var (
 )
 
 func Send(cfg config.WebhookConfig, item feed.Item, summary string) error {
+	payload, err := RenderPayload(cfg, item, summary)
+	if err != nil {
+		return err
+	}
+
+	return SendPayload(cfg, payload)
+}
+
+func RenderPayload(cfg config.WebhookConfig, item feed.Item, summary string) (string, error) {
 	data := TemplateData{
 		FeedName:    item.FeedName,
 		FeedURL:     item.FeedURL,
@@ -47,9 +56,12 @@ func Send(cfg config.WebhookConfig, item feed.Item, summary string) error {
 
 	payload, err := renderTemplate(cfg.PayloadTemplate, data)
 	if err != nil {
-		return fmt.Errorf("rendering webhook payload template: %w", err)
+		return "", fmt.Errorf("rendering webhook payload template: %w", err)
 	}
+	return payload, nil
+}
 
+func SendPayload(cfg config.WebhookConfig, payload string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.TimeoutSeconds)*time.Second)
 	defer cancel()
 

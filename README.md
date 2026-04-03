@@ -91,6 +91,13 @@ webhook:
       "summary": "{{.Summary}}"
     }
 
+# Dry-run toggles (for config testing)
+dry_run:
+  fetch_only: false        # stop after fetching items (no summaries, no webhooks, no state writes)
+  skip_llm: false          # render and log the prompt instead of calling the LLM
+  skip_webhook: false      # render and log the webhook payload instead of sending it
+  skip_state_save: false   # do not write the state file after a cycle
+
 # State file path (default: state.json)
 state:
   path: "state.json"

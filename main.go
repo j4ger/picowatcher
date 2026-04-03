@@ -124,30 +124,68 @@ func run(cfg *config.Config, st *state.State, log *slog.Logger) {
 			continue
 		}
 		log.Info("found new items", "feed", feedCfg.Name, "count", len(items))
+		if cfg.DryRun.FetchOnly {
+			for _, item := range items {
+				log.Info("dry-run fetch-only: item would be processed",
+					"feed", feedCfg.Name,
+					"title", item.Title,
+					"link", item.Link)
+			}
+			continue
+		}
+
 		for _, item := range items {
 			// Mark seen early to avoid duplicate processing on partial failures
-			st.MarkSeen(feedCfg.URL, item.ID)
+			if !cfg.DryRun.SkipStateSave {
+				st.MarkSeen(feedCfg.URL, item.ID)
+			}
 
 			var summary string
 			if cfg.LLM.Enabled {
-				summary, err = llm.Summarize(cfg.LLM, item)
-				if err != nil {
-					log.Error("summarizing item", "title", item.Title, "error", err)
-					summary = ""
+				if cfg.DryRun.SkipLLM {
+					userPrompt, err := llm.RenderPrompt(cfg.LLM, item)
+					if err != nil {
+						log.Error("rendering LLM prompt", "title", item.Title, "error", err)
+					} else {
+						summary = "[dry-run] summarization skipped"
+						log.Info("dry-run: skipping summarization",
+							"title", item.Title,
+							"user_prompt", userPrompt,
+							"system_prompt", cfg.LLM.SystemPrompt)
+					}
+				} else {
+					summary, err = llm.Summarize(cfg.LLM, item)
+					if err != nil {
+						log.Error("summarizing item", "title", item.Title, "error", err)
+						summary = ""
+					}
 				}
 			}
 
 			if cfg.Webhook.URL != "" {
-				if err := notify.Send(cfg.Webhook, item, summary); err != nil {
-					log.Error("sending webhook", "title", item.Title, "error", err)
+				payload, err := notify.RenderPayload(cfg.Webhook, item, summary)
+				if err != nil {
+					log.Error("rendering webhook payload", "title", item.Title, "error", err)
+					continue
+				}
+				if cfg.DryRun.SkipWebhook {
+					log.Info("dry-run: skipping webhook send",
+						"title", item.Title,
+						"payload", payload)
 				} else {
-					log.Info("webhook sent", "feed", feedCfg.Name, "title", item.Title)
+					if err := notify.SendPayload(cfg.Webhook, payload); err != nil {
+						log.Error("sending webhook", "title", item.Title, "error", err)
+					} else {
+						log.Info("webhook sent", "feed", feedCfg.Name, "title", item.Title)
+					}
 				}
 			}
 		}
 	}
 
-	if err := st.Save(); err != nil {
+	if cfg.DryRun.SkipStateSave {
+		log.Info("dry-run: skipping state save")
+	} else if err := st.Save(); err != nil {
 		log.Error("saving state", "error", err)
 	}
 	log.Info("feed check cycle complete")

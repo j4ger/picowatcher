@@ -12,6 +12,7 @@ type Config struct {
 	Feeds           []FeedConfig  `yaml:"feeds"`
 	LLM             LLMConfig     `yaml:"llm"`
 	Webhook         WebhookConfig `yaml:"webhook"`
+	DryRun          DryRunConfig  `yaml:"dry_run"`
 	State           StateConfig   `yaml:"state"`
 	Log             LogConfig     `yaml:"log"`
 }
@@ -19,6 +20,18 @@ type Config struct {
 type FeedConfig struct {
 	Name string `yaml:"name"`
 	URL  string `yaml:"url"`
+}
+
+type DryRunConfig struct {
+	// FetchOnly stops after downloading and parsing feeds; no state updates,
+	// summarization, or webhooks are executed.
+	FetchOnly bool `yaml:"fetch_only"`
+	// SkipLLM renders the prompt for validation but does not call the LLM API.
+	SkipLLM bool `yaml:"skip_llm"`
+	// SkipWebhook renders the payload for validation but does not perform the HTTP request.
+	SkipWebhook bool `yaml:"skip_webhook"`
+	// SkipStateSave prevents writing the state file to disk after a cycle.
+	SkipStateSave bool `yaml:"skip_state_save"`
 }
 
 type LLMConfig struct {
