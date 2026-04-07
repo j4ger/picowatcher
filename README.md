@@ -119,6 +119,16 @@ log:
 
 # Specify a custom config path
 ./picowatcher -config /etc/picowatcher/config.yaml
+
+# Trigger dry run from CLI (overrides config dry_run fields)
+# Full dry run: fetch only, skip LLM/webhook/state writes
+./picowatcher -dry-run
+
+# Selective dry-run toggles
+./picowatcher -dry-fetch-only          # list new items only
+./picowatcher -dry-skip-llm            # render prompt but skip API call
+./picowatcher -dry-skip-webhook        # render payload but skip HTTP send
+./picowatcher -dry-skip-state-save     # skip writing state.json
 ```
 
 ### systemd unit (example)

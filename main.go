@@ -19,6 +19,11 @@ import (
 
 func main() {
 	configPath := flag.String("config", "config.yaml", "path to config file")
+	dryRunAll := flag.Bool("dry-run", false, "enable dry run: fetch only, skip LLM, skip webhooks, skip state save")
+	dryFetchOnly := flag.Bool("dry-fetch-only", false, "fetch feeds but do not summarize or send webhooks")
+	drySkipLLM := flag.Bool("dry-skip-llm", false, "render prompts but skip LLM API calls")
+	drySkipWebhook := flag.Bool("dry-skip-webhook", false, "render payloads but skip webhook sends")
+	drySkipStateSave := flag.Bool("dry-skip-state-save", false, "skip writing the state file after a run")
 	flag.Parse()
 
 	cfg, err := config.Load(*configPath)
@@ -26,6 +31,7 @@ func main() {
 		slog.Error("failed to load config", "error", err)
 		os.Exit(1)
 	}
+	applyDryRunOverrides(cfg, *dryRunAll, *dryFetchOnly, *drySkipLLM, *drySkipWebhook, *drySkipStateSave)
 
 	log := logger.Setup(cfg.Log)
 
@@ -75,6 +81,7 @@ func main() {
 				log.Error("failed to reload config, keeping old config", "error", err)
 				continue
 			}
+			applyDryRunOverrides(newCfg, *dryRunAll, *dryFetchOnly, *drySkipLLM, *drySkipWebhook, *drySkipStateSave)
 
 			// Reinitialize logger if log config changed
 			log = logger.Setup(newCfg.Log)
@@ -111,6 +118,27 @@ func main() {
 			}
 			return
 		}
+	}
+}
+
+func applyDryRunOverrides(cfg *config.Config, all, fetchOnly, skipLLM, skipWebhook, skipStateSave bool) {
+	if all {
+		cfg.DryRun.FetchOnly = true
+		cfg.DryRun.SkipLLM = true
+		cfg.DryRun.SkipWebhook = true
+		cfg.DryRun.SkipStateSave = true
+	}
+	if fetchOnly {
+		cfg.DryRun.FetchOnly = true
+	}
+	if skipLLM {
+		cfg.DryRun.SkipLLM = true
+	}
+	if skipWebhook {
+		cfg.DryRun.SkipWebhook = true
+	}
+	if skipStateSave {
+		cfg.DryRun.SkipStateSave = true
 	}
 }
 
