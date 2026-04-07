@@ -91,6 +91,13 @@ webhook:
       "summary": "{{.Summary}}"
     }
 
+# Dry-run toggles (for config testing)
+dry_run:
+  fetch_only: false        # stop after fetching items (no summaries, no webhooks, no state writes)
+  skip_llm: false          # render and log the prompt instead of calling the LLM
+  skip_webhook: false      # render and log the webhook payload instead of sending it
+  skip_state_save: false   # do not write the state file after a cycle
+
 # State file path (default: state.json)
 state:
   path: "state.json"
@@ -112,6 +119,16 @@ log:
 
 # Specify a custom config path
 ./picowatcher -config /etc/picowatcher/config.yaml
+
+# Trigger dry run from CLI (overrides config dry_run fields)
+# Full dry run: fetch only, skip LLM/webhook/state writes
+./picowatcher -dry-run
+
+# Selective dry-run toggles
+./picowatcher -dry-fetch-only          # list new items only
+./picowatcher -dry-skip-llm            # render prompt but skip API call
+./picowatcher -dry-skip-webhook        # render payload but skip HTTP send
+./picowatcher -dry-skip-state-save     # skip writing state.json
 ```
 
 ### systemd unit (example)
