@@ -7,11 +7,6 @@ on:
         description: 'Release tag (for example: v1.0.0)'
         required: true
         type: string
-      target:
-        description: 'Target commit-ish (branch, SHA, or tag)'
-        required: false
-        default: ''
-        type: string
       make_latest:
         description: 'Mark this release as latest'
         required: true
@@ -29,6 +24,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag }}
-          target_commitish: ${{ inputs.target != '' && inputs.target || github.sha }}
           generate_release_notes: true
           make_latest: ${{ inputs.make_latest && 'true' || 'false' }}
