@@ -33,9 +33,15 @@ jobs:
             exit 1
           fi
 
+      - name: Build release binary
+        run: |
+          mkdir -p dist
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" -o dist/picowatcher-linux-amd64 .
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag }}
           generate_release_notes: true
           make_latest: ${{ inputs.make_latest }}
+          files: dist/picowatcher-linux-amd64
