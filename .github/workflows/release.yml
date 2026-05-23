@@ -20,6 +20,19 @@ jobs:
   create-release:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate release tag exists
+        run: |
+          git fetch --tags --force
+          if ! git rev-parse --verify --quiet "refs/tags/${{ inputs.tag }}" >/dev/null; then
+            echo "Tag '${{ inputs.tag }}' does not exist. Create and push it before running this workflow."
+            exit 1
+          fi
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
