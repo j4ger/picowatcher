@@ -27,12 +27,13 @@ webhook:
     Authorization: "Bearer your-token"
     X-Custom-Header: "value"
   # Template variables: .FeedName .FeedURL .Title .Link .Description .Content .Summary .Published
+  # Template helper: truncate <string> <max_chars>
   payload_template: |
     {
       "feed": "{{.FeedName}}",
       "title": "{{.Title}}",
       "link": "{{.Link}}",
-      "summary": "{{.Summary}}",
+      "summary": "{{truncate .Summary 280}}",
       "published": "{{.Published}}"
     }
 

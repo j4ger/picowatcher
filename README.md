@@ -83,12 +83,14 @@ webhook:
   # Available template variables:
   #   .FeedName  .FeedURL  .Title  .Link
   #   .Description  .Content  .Summary  .Published
+  # Template helper:
+  #   truncate <string> <max_chars>
   payload_template: |
     {
       "feed":    "{{.FeedName}}",
       "title":   "{{.Title}}",
       "link":    "{{.Link}}",
-      "summary": "{{.Summary}}"
+      "summary": "{{truncate .Summary 280}}"
     }
 
 # Dry-run toggles (for config testing)

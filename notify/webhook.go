@@ -33,6 +33,10 @@ var (
 	tmplCache = make(map[string]*template.Template)
 )
 
+var templateFuncs = template.FuncMap{
+	"truncate": truncate,
+}
+
 func Send(cfg config.WebhookConfig, item feed.Item, summary string) error {
 	payload, err := RenderPayload(cfg, item, summary)
 	if err != nil {
@@ -97,7 +101,7 @@ func renderTemplate(tmpl string, data TemplateData) (string, error) {
 		t, ok = tmplCache[tmpl]
 		if !ok {
 			var err error
-			t, err = template.New("webhook").Parse(tmpl)
+			t, err = template.New("webhook").Funcs(templateFuncs).Parse(tmpl)
 			if err != nil {
 				tmplMu.Unlock()
 				return "", err
@@ -111,4 +115,15 @@ func renderTemplate(tmpl string, data TemplateData) (string, error) {
 		return "", err
 	}
 	return buf.String(), nil
+}
+
+func truncate(s string, max int) string {
+	if max <= 0 {
+		return ""
+	}
+	runes := []rune(s)
+	if len(runes) <= max {
+		return s
+	}
+	return string(runes[:max])
 }
