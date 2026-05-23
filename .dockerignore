@@ -1,0 +1,8 @@
+.git
+.github
+.gitignore
+picowatcher
+*.log
+*.out
+state.json
+config.yaml

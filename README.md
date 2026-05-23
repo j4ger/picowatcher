@@ -131,6 +131,43 @@ log:
 ./picowatcher -dry-skip-state-save     # skip writing state.json
 ```
 
+## Running with Docker Compose
+
+1. Create a runtime config from the example:
+
+```bash
+cp config.example.yaml config.yaml
+```
+
+2. Start picowatcher:
+
+```bash
+docker compose up -d --build
+```
+
+3. Check logs:
+
+```bash
+docker compose logs -f picowatcher
+```
+
+4. Stop it:
+
+```bash
+docker compose down
+```
+
+### Use a custom config file with Docker Compose
+
+The compose setup mounts `config.yaml` by default.  
+To use a different config file, set `PICOWATCHER_CONFIG` when starting:
+
+```bash
+PICOWATCHER_CONFIG=./configs/prod.yaml docker compose up -d --build
+```
+
+State and log files are persisted in the `picowatcher-data` Docker volume (`/data` in the container).
+
 ### systemd unit (example)
 
 ```ini

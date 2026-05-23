@@ -1,0 +1,14 @@
+services:
+  picowatcher:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: picowatcher
+    restart: unless-stopped
+    command: ["-config", "/etc/picowatcher/config.yaml"]
+    volumes:
+      - ${PICOWATCHER_CONFIG:-./config.yaml}:/etc/picowatcher/config.yaml:ro
+      - picowatcher-data:/data
+
+volumes:
+  picowatcher-data:
